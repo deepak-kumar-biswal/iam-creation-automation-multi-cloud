@@ -55,7 +55,7 @@
 - **Disaster Recovery**: Multi-region deployment support
 - **High Availability**: 99.99% uptime SLA
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 The Enterprise Multi-Cloud IAM Automation System follows a hub-and-spoke architecture designed for maximum scalability, security, and operational excellence.
 
@@ -580,7 +580,7 @@ azure:
       roles: ["Contributor", "User Access Administrator"]
 ```
 
-## 🛡️ Security Services
+## Security Services
 
 ### Supported Cloud Services
 
@@ -626,7 +626,7 @@ azure:
 }
 ```
 
-## 📊 API Reference
+## API Reference
 
 ### REST API Endpoints
 
@@ -752,7 +752,7 @@ module "azure_iam_users" {
 }
 ```
 
-## 📈 Monitoring
+## Monitoring
 
 ### Observability Stack
 
