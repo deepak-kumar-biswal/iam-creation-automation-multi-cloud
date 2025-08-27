@@ -1,0 +1,152 @@
+name: 'Multi-Cloud Deployment'
+description: 'Deploy IAM resources across multiple cloud providers'
+
+inputs:
+  environment:
+    description: 'Target environment (dev, staging, production)'
+    required: true
+  max_concurrent_accounts:
+    description: 'Maximum number of accounts to deploy concurrently'
+    required: false
+    default: '10'
+  deployment_strategy:
+    description: 'Deployment strategy (rolling, blue-green, canary)'
+    required: false
+    default: 'rolling'
+  canary_percentage:
+    description: 'Percentage for canary deployment'
+    required: false
+    default: '10'
+  monitoring_enabled:
+    description: 'Enable deployment monitoring'
+    required: false
+    default: 'true'
+  auto_rollback:
+    description: 'Enable automatic rollback on failure'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Load Environment Configuration'
+      shell: bash
+      run: |
+        echo "Loading configuration for ${{ inputs.environment }}..."
+        
+        # Load account lists
+        export AWS_ACCOUNTS=$(cat config/accounts/aws-${{ inputs.environment }}.json | jq -r '.accounts[].account_id' | tr '\n' ',')
+        export GCP_PROJECTS=$(cat config/accounts/gcp-${{ inputs.environment }}.json | jq -r '.projects[].project_id' | tr '\n' ',')
+        export AZURE_SUBSCRIPTIONS=$(cat config/accounts/azure-${{ inputs.environment }}.json | jq -r '.subscriptions[].subscription_id' | tr '\n' ',')
+        
+        echo "AWS_ACCOUNTS=${AWS_ACCOUNTS}" >> $GITHUB_ENV
+        echo "GCP_PROJECTS=${GCP_PROJECTS}" >> $GITHUB_ENV
+        echo "AZURE_SUBSCRIPTIONS=${AZURE_SUBSCRIPTIONS}" >> $GITHUB_ENV
+        
+        # Load deployment parameters
+        echo "MAX_CONCURRENT=${{ inputs.max_concurrent_accounts }}" >> $GITHUB_ENV
+        echo "DEPLOYMENT_STRATEGY=${{ inputs.deployment_strategy }}" >> $GITHUB_ENV
+    
+    - name: 'Pre-Deployment Health Check'
+      shell: bash
+      run: |
+        echo "Performing pre-deployment health checks..."
+        python scripts/health-check.py \
+          --environment ${{ inputs.environment }} \
+          --clouds aws,gcp,azure \
+          --check-connectivity \
+          --check-permissions \
+          --check-quotas
+    
+    - name: 'Initialize Terraform Workspaces'
+      shell: bash
+      run: |
+        echo "Initializing Terraform workspaces..."
+        ./scripts/init-workspaces.sh \
+          --environment ${{ inputs.environment }} \
+          --clouds aws,gcp,azure \
+          --parallel
+    
+    - name: 'AWS Deployment'
+      shell: bash
+      run: |
+        echo "Starting AWS deployment..."
+        python scripts/deploy-aws.py \
+          --environment ${{ inputs.environment }} \
+          --accounts "${AWS_ACCOUNTS}" \
+          --max-concurrent ${{ inputs.max_concurrent_accounts }} \
+          --strategy ${{ inputs.deployment_strategy }} \
+          --monitor ${{ inputs.monitoring_enabled }}
+    
+    - name: 'GCP Deployment'
+      shell: bash
+      run: |
+        echo "Starting GCP deployment..."
+        python scripts/deploy-gcp.py \
+          --environment ${{ inputs.environment }} \
+          --projects "${GCP_PROJECTS}" \
+          --max-concurrent ${{ inputs.max_concurrent_accounts }} \
+          --strategy ${{ inputs.deployment_strategy }} \
+          --monitor ${{ inputs.monitoring_enabled }}
+    
+    - name: 'Azure Deployment'
+      shell: bash
+      run: |
+        echo "Starting Azure deployment..."
+        python scripts/deploy-azure.py \
+          --environment ${{ inputs.environment }} \
+          --subscriptions "${AZURE_SUBSCRIPTIONS}" \
+          --max-concurrent ${{ inputs.max_concurrent_accounts }} \
+          --strategy ${{ inputs.deployment_strategy }} \
+          --monitor ${{ inputs.monitoring_enabled }}
+    
+    - name: 'Deployment Monitoring'
+      if: inputs.monitoring_enabled == 'true'
+      shell: bash
+      run: |
+        echo "Monitoring deployment progress..."
+        python scripts/monitor-deployment.py \
+          --environment ${{ inputs.environment }} \
+          --deployment-id ${{ env.DEPLOYMENT_ID }} \
+          --real-time \
+          --alerts-enabled
+    
+    - name: 'Post-Deployment Verification'
+      shell: bash
+      run: |
+        echo "Verifying deployment..."
+        python scripts/verify-deployment.py \
+          --environment ${{ inputs.environment }} \
+          --clouds aws,gcp,azure \
+          --comprehensive \
+          --sample-size 50
+    
+    - name: 'Rollback on Failure'
+      if: failure() && inputs.auto_rollback == 'true'
+      shell: bash
+      run: |
+        echo "Deployment failed, initiating rollback..."
+        python scripts/rollback.py \
+          --environment ${{ inputs.environment }} \
+          --deployment-id ${{ env.DEPLOYMENT_ID }} \
+          --clouds aws,gcp,azure \
+          --force
+    
+    - name: 'Update Deployment Status'
+      if: always()
+      shell: bash
+      run: |
+        STATUS=${{ job.status }}
+        echo "Updating deployment status: $STATUS"
+        
+        python scripts/update-status.py \
+          --deployment-id ${{ env.DEPLOYMENT_ID }} \
+          --status $STATUS \
+          --environment ${{ inputs.environment }} \
+          --timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)
+        
+        # Send notifications
+        python scripts/send-notifications.py \
+          --deployment-id ${{ env.DEPLOYMENT_ID }} \
+          --status $STATUS \
+          --environment ${{ inputs.environment }}

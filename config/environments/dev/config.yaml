@@ -1,0 +1,259 @@
+# Multi-Cloud IAM Automation - Example Configuration
+# Development Environment
+
+# AWS Configuration
+aws:
+  accounts:
+    - account_id: "123456789012"
+      region: "us-east-1"
+      role_arn: "arn:aws:iam::123456789012:role/IAMAutomationRole"
+      environment: "dev"
+      tags:
+        CostCenter: "Engineering"
+        Project: "IAM-Automation"
+    - account_id: "123456789013"
+      region: "us-west-2"
+      role_arn: "arn:aws:iam::123456789013:role/IAMAutomationRole"
+      environment: "dev"
+      tags:
+        CostCenter: "Engineering"
+        Project: "IAM-Automation"
+
+# GCP Configuration
+gcp:
+  projects:
+    - project_id: "iam-automation-dev-001"
+      region: "us-central1"
+      service_account_email: "iam-automation@iam-automation-dev-001.iam.gserviceaccount.com"
+      environment: "dev"
+      labels:
+        cost-center: "engineering"
+        project: "iam-automation"
+    - project_id: "iam-automation-dev-002"
+      region: "us-central1"
+      service_account_email: "iam-automation@iam-automation-dev-002.iam.gserviceaccount.com"
+      environment: "dev"
+      labels:
+        cost-center: "engineering"
+        project: "iam-automation"
+
+# Azure Configuration
+azure:
+  subscriptions:
+    - subscription_id: "12345678-1234-1234-1234-123456789012"
+      resource_group: "iam-automation-dev-rg"
+      location: "East US"
+      environment: "dev"
+      tags:
+        CostCenter: "Engineering"
+        Project: "IAM-Automation"
+    - subscription_id: "12345678-1234-1234-1234-123456789013"
+      resource_group: "iam-automation-dev-rg"
+      location: "West US 2"
+      environment: "dev"
+      tags:
+        CostCenter: "Engineering"
+        Project: "IAM-Automation"
+
+# IAM Resources Configuration
+iam_resources:
+  users:
+    - name: "john.doe"
+      email: "john.doe@company.com"
+      department: "Engineering"
+      access_level: "developer"
+      clouds: ["aws", "gcp"]
+      policies:
+        aws: ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
+        gcp: ["roles/viewer"]
+      tags:
+        Team: "Platform"
+        Role: "Developer"
+        
+    - name: "jane.smith"
+      email: "jane.smith@company.com"
+      department: "Security"
+      access_level: "admin"
+      clouds: ["aws", "gcp", "azure"]
+      policies:
+        aws: ["arn:aws:iam::aws:policy/IAMFullAccess"]
+        gcp: ["roles/iam.admin"]
+        azure: ["Owner"]
+      tags:
+        Team: "Security"
+        Role: "Admin"
+
+  service_accounts:
+    - name: "ci-cd-pipeline"
+      description: "Service account for CI/CD pipeline"
+      clouds: ["aws", "gcp", "azure"]
+      policies:
+        aws: ["arn:aws:iam::aws:policy/PowerUserAccess"]
+        gcp: ["roles/editor"]
+        azure: ["Contributor"]
+      key_rotation_days: 30
+      
+    - name: "monitoring-service"
+      description: "Service account for monitoring"
+      clouds: ["aws", "gcp", "azure"]
+      policies:
+        aws: ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
+        gcp: ["roles/monitoring.viewer"]
+        azure: ["Reader"]
+      key_rotation_days: 90
+
+  roles:
+    - name: "application-role"
+      description: "Role for application workloads"
+      assume_role_policy: |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      policies:
+        - "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+        - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+      max_session_duration: 3600
+      
+  groups:
+    - name: "developers"
+      description: "Developer group"
+      policies:
+        - "arn:aws:iam::aws:policy/ReadOnlyAccess"
+      users:
+        - "john.doe"
+        
+    - name: "admins"
+      description: "Administrator group"
+      policies:
+        - "arn:aws:iam::aws:policy/IAMFullAccess"
+      users:
+        - "jane.smith"
+
+# Security Configuration
+security:
+  password_policy:
+    minimum_length: 14
+    require_lowercase: true
+    require_numbers: true
+    require_uppercase: true
+    require_symbols: true
+    allow_users_to_change: true
+    hard_expiry: false
+    max_age: 90
+    reuse_prevention: 12
+    
+  mfa_enforcement:
+    enabled: true
+    require_for_console: true
+    require_for_api: false
+    
+  access_analyzer:
+    enabled: true
+    findings_notification: true
+    
+  unused_permissions:
+    detection_enabled: true
+    retention_days: 90
+    notification_threshold: 30
+
+# Compliance Configuration
+compliance:
+  frameworks:
+    - "SOC2"
+    - "PCI-DSS"
+    - "HIPAA"
+    - "ISO27001"
+    
+  audit_logging:
+    enabled: true
+    retention_days: 2557  # 7 years
+    
+  encryption:
+    in_transit: true
+    at_rest: true
+    key_rotation_days: 365
+
+# Monitoring Configuration
+monitoring:
+  metrics:
+    enabled: true
+    collection_interval: 30
+    retention_days: 90
+    
+  alerts:
+    deployment_failures: true
+    security_violations: true
+    compliance_issues: true
+    cost_anomalies: true
+    
+  dashboards:
+    enabled: true
+    auto_refresh: true
+    public_access: false
+
+# Notification Configuration
+notifications:
+  channels:
+    slack:
+      enabled: true
+      webhook_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+      channel: "#iam-automation"
+      
+    email:
+      enabled: true
+      smtp_server: "smtp.company.com"
+      smtp_port: 587
+      username: "alerts@company.com"
+      recipients:
+        - "platform-team@company.com"
+        - "security-team@company.com"
+        
+    pagerduty:
+      enabled: true
+      service_key: "YOUR_PAGERDUTY_SERVICE_KEY"
+      
+    teams:
+      enabled: false
+      webhook_url: "https://outlook.office.com/webhook/YOUR/TEAMS/WEBHOOK"
+
+# Backup Configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention_days: 90
+  s3_bucket: "iam-automation-backups"
+  encryption: true
+
+# Cost Management
+cost_management:
+  budgets:
+    monthly_limit: 1000  # USD
+    alert_thresholds: [50, 80, 100]  # Percentage
+    
+  tagging:
+    required_tags:
+      - "CostCenter"
+      - "Project"
+      - "Environment"
+      - "Owner"
+      
+  optimization:
+    unused_resource_detection: true
+    right_sizing_recommendations: true
+
+# Development Settings
+development:
+  dry_run_default: true
+  verbose_logging: true
+  skip_confirmations: false
+  parallel_limit: 5
+  timeout_seconds: 3600

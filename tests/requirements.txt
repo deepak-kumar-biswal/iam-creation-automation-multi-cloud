@@ -1,0 +1,77 @@
+"""
+Enterprise Multi-Cloud IAM Automation - Test Requirements
+Testing infrastructure for production-grade IAM automation system
+"""
+
+# Core Testing Dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+pytest-asyncio>=0.21.1
+pytest-xdist>=3.3.1
+pytest-html>=3.2.0
+pytest-json-report>=1.5.0
+
+# Cloud SDK Testing
+boto3>=1.28.0
+moto[all]>=4.2.0
+google-cloud-core>=2.3.3
+google-cloud-storage>=2.10.0
+azure-identity>=1.14.0
+azure-mgmt-core>=1.4.0
+azure-mgmt-resource>=23.0.1
+
+# Terraform Testing
+python-terraform>=0.10.1
+tftest>=1.7.0
+
+# API Testing
+requests>=2.31.0
+httpx>=0.24.1
+responses>=0.23.3
+
+# Security Testing
+bandit>=1.7.5
+safety>=2.3.4
+checkov>=2.4.0
+
+# Performance Testing
+locust>=2.16.1
+memory-profiler>=0.60.0
+
+# Chaos Engineering
+chaostoolkit>=1.17.0
+chaostoolkit-aws>=0.24.0
+chaostoolkit-gcp>=0.8.0
+chaostoolkit-azure>=0.8.0
+
+# Data Validation
+pydantic>=2.3.0
+marshmallow>=3.20.1
+cerberus>=1.3.5
+
+# Test Utilities
+factory-boy>=3.3.0
+faker>=19.6.1
+freezegun>=1.2.2
+testcontainers>=3.7.1
+
+# Monitoring & Metrics Testing
+prometheus-client>=0.17.1
+psutil>=5.9.5
+
+# Configuration Testing
+pyyaml>=6.0.1
+jsonschema>=4.19.0
+python-dotenv>=1.0.0
+
+# Parallel Testing
+pytest-parallel>=0.1.1
+pytest-benchmark>=4.0.0
+
+# Development Dependencies
+black>=23.7.0
+flake8>=6.1.0
+mypy>=1.5.1
+isort>=5.12.0
+pre-commit>=3.4.0

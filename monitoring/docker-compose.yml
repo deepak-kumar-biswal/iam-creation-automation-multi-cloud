@@ -1,0 +1,322 @@
+version: '3.8'
+
+services:
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: iam-automation-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123!
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel,grafana-clock-panel
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+      - loki
+
+  # Prometheus Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: iam-automation-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/rules:/etc/prometheus/rules
+      - prometheus-storage:/prometheus
+    networks:
+      - monitoring
+
+  # Loki for Log Aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: iam-automation-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    command:
+      - '-config.file=/etc/loki/local-config.yaml'
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki-storage:/loki
+    networks:
+      - monitoring
+
+  # Promtail for Log Collection
+  promtail:
+    image: grafana/promtail:latest
+    container_name: iam-automation-promtail
+    restart: unless-stopped
+    volumes:
+      - /var/log:/var/log:ro
+      - ./logs:/var/log/iam-automation:ro
+      - ./promtail/promtail-config.yaml:/etc/promtail/config.yml
+    command:
+      - '-config.file=/etc/promtail/config.yml'
+    networks:
+      - monitoring
+
+  # Node Exporter for System Metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: iam-automation-node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+    networks:
+      - monitoring
+
+  # Custom Metrics Exporter
+  iam-metrics-exporter:
+    build:
+      context: .
+      dockerfile: monitoring/Dockerfile.metrics-exporter
+    container_name: iam-automation-metrics-exporter
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - AWS_REGION=us-east-1
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - METRICS_PORT=8080
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+      - ${GOOGLE_APPLICATION_CREDENTIALS}:/app/gcp-credentials.json:ro
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+
+  # AlertManager for Alerting
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: iam-automation-alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager-storage:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - monitoring
+
+  # Jaeger for Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: iam-automation-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+    networks:
+      - monitoring
+
+  # Redis for Caching and Session Storage
+  redis:
+    image: redis:alpine
+    container_name: iam-automation-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-storage:/data
+    networks:
+      - monitoring
+
+  # PostgreSQL for Metadata Storage
+  postgres:
+    image: postgres:15
+    container_name: iam-automation-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=iam_automation
+      - POSTGRES_USER=iam_user
+      - POSTGRES_PASSWORD=secure_password_123!
+    volumes:
+      - postgres-storage:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - monitoring
+
+  # Status Page
+  status-page:
+    build:
+      context: .
+      dockerfile: monitoring/Dockerfile.status-page
+    container_name: iam-automation-status-page
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - DATABASE_URL=postgresql://iam_user:secure_password_123!@postgres:5432/iam_automation
+      - PROMETHEUS_URL=http://prometheus:9090
+      - GRAFANA_URL=http://grafana:3000
+      - LOKI_URL=http://loki:3100
+      - PORT=8081
+    networks:
+      - monitoring
+    depends_on:
+      - postgres
+      - prometheus
+      - grafana
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: monitoring/Dockerfile.notification-service
+    container_name: iam-automation-notifications
+    restart: unless-stopped
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - PAGERDUTY_SERVICE_KEY=${PAGERDUTY_SERVICE_KEY}
+      - EMAIL_SMTP_SERVER=${EMAIL_SMTP_SERVER}
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - TEAMS_WEBHOOK_URL=${TEAMS_WEBHOOK_URL}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    volumes:
+      - ./config/notifications.yaml:/app/config.yaml
+      - ./logs:/app/logs
+    networks:
+      - monitoring
+
+  # Security Scanner
+  security-scanner:
+    build:
+      context: .
+      dockerfile: monitoring/Dockerfile.security-scanner
+    container_name: iam-automation-security-scanner
+    restart: unless-stopped
+    environment:
+      - SCAN_INTERVAL=3600  # 1 hour
+      - AWS_REGION=us-east-1
+      - SECURITY_ALERTS_WEBHOOK=${SECURITY_ALERTS_WEBHOOK}
+    volumes:
+      - ./config:/app/config
+      - ./terraform:/app/terraform:ro
+      - ./logs:/app/logs
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+
+  # Backup Service
+  backup-service:
+    build:
+      context: .
+      dockerfile: monitoring/Dockerfile.backup-service
+    container_name: iam-automation-backup
+    restart: unless-stopped
+    environment:
+      - BACKUP_SCHEDULE=0 2 * * *  # Daily at 2 AM
+      - S3_BACKUP_BUCKET=${S3_BACKUP_BUCKET}
+      - AWS_REGION=us-east-1
+      - RETENTION_DAYS=90
+    volumes:
+      - postgres-storage:/backup/postgres:ro
+      - grafana-storage:/backup/grafana:ro
+      - prometheus-storage:/backup/prometheus:ro
+      - ./config:/backup/config:ro
+      - ./logs:/app/logs
+    networks:
+      - monitoring
+    depends_on:
+      - postgres
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: monitoring/Dockerfile.api-gateway
+    container_name: iam-automation-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=postgresql://iam_user:secure_password_123!@postgres:5432/iam_automation
+      - REDIS_URL=redis://redis:6379
+      - PROMETHEUS_URL=http://prometheus:9090
+      - GRAFANA_URL=http://grafana:3000
+    volumes:
+      - ./config/api-gateway.yaml:/app/config.yaml
+      - ./logs:/app/logs
+    networks:
+      - monitoring
+    depends_on:
+      - postgres
+      - redis
+
+  # Load Balancer (HAProxy)
+  load-balancer:
+    image: haproxy:latest
+    container_name: iam-automation-load-balancer
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8404:8404"  # HAProxy stats
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+      - ./ssl:/etc/ssl/certs
+    networks:
+      - monitoring
+    depends_on:
+      - grafana
+      - api-gateway
+      - status-page
+
+volumes:
+  grafana-storage:
+    driver: local
+  prometheus-storage:
+    driver: local
+  loki-storage:
+    driver: local
+  alertmanager-storage:
+    driver: local
+  redis-storage:
+    driver: local
+  postgres-storage:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

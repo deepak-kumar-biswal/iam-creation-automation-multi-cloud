@@ -1,0 +1,66 @@
+name: 'Configure Cloud Credentials'
+description: 'Configure credentials for AWS, Azure, and GCP'
+
+inputs:
+  environment:
+    description: 'Target environment (dev, staging, production)'
+    required: true
+  aws_role:
+    description: 'AWS IAM Role ARN to assume'
+    required: true
+  azure_creds:
+    description: 'Azure Service Principal credentials'
+    required: true
+  gcp_key:
+    description: 'GCP Service Account key'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Configure AWS Credentials'
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ inputs.aws_role }}
+        aws-region: us-east-1
+        role-session-name: GitHubActions-${{ inputs.environment }}
+        role-duration-seconds: 3600
+    
+    - name: 'Verify AWS Access'
+      shell: bash
+      run: |
+        echo "Verifying AWS access..."
+        aws sts get-caller-identity
+        aws organizations list-accounts --max-items 1 || echo "Organizations access not available"
+    
+    - name: 'Configure Azure Credentials'
+      uses: azure/login@v1
+      with:
+        creds: ${{ inputs.azure_creds }}
+    
+    - name: 'Verify Azure Access'
+      shell: bash
+      run: |
+        echo "Verifying Azure access..."
+        az account show
+        az account list --output table
+    
+    - name: 'Configure GCP Credentials'
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ inputs.gcp_key }}
+    
+    - name: 'Verify GCP Access'
+      shell: bash
+      run: |
+        echo "Verifying GCP access..."
+        gcloud auth list
+        gcloud config list
+        gcloud projects list --limit=5
+    
+    - name: 'Set Environment Variables'
+      shell: bash
+      run: |
+        echo "DEPLOYMENT_ENVIRONMENT=${{ inputs.environment }}" >> $GITHUB_ENV
+        echo "DEPLOYMENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_ENV
+        echo "DEPLOYMENT_ID=$(uuidgen)" >> $GITHUB_ENV
