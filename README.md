@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="https://img.shields.io/badge/🌐-Multi%20Cloud%20IAM-blue?style=for-the-badge&logoColor=white" alt="Multi-Cloud IAM"/>
-  <img src="https://img.shields.io/badge/🏆-Enterprise%20Grade-orange?style=for-the-badge" alt="Enterprise"/>
-  <img src="https://img.shields.io/badge/⚡-Award%20Winning-gold?style=for-the-badge" alt="Award Winning"/>
+  <img src="https://img.shields.io/badge/%F0%9F%8C%90-Multi%20Cloud%20IAM-blue?style=for-the-badge&logoColor=white" alt="Multi-Cloud IAM"/>
+  <img src="https://img.shields.io/badge/%F0%9F%8F%86-Enterprise%20Grade-orange?style=for-the-badge" alt="Enterprise"/>
+  <img src="https://img.shields.io/badge/%E2%9A%A1-Award%20Winning-gold?style=for-the-badge" alt="Award Winning"/>
 </div>
 
 <div align="center">
@@ -11,10 +11,12 @@
 
 <div align="center">
 
-[![CI/CD Pipeline](https://github.com/your-org/iam-automation/workflows/CI%2FCD/badge.svg)](https://github.com/your-org/iam-automation/actions)
-[![Security Scan](https://github.com/your-org/iam-automation/workflows/Security%20Scan/badge.svg)](https://github.com/your-org/iam-automation/actions)
-[![Terraform Validate](https://github.com/your-org/iam-automation/workflows/Terraform%20Validate/badge.svg)](https://github.com/your-org/iam-automation/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Terraform](https://img.shields.io/badge/Terraform-1.5%2B-623CE4?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![AWS](https://img.shields.io/badge/AWS-Cloud-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
+[![Google Cloud](https://img.shields.io/badge/Google%20Cloud-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white)](https://cloud.google.com/)
+[![Microsoft Azure](https://img.shields.io/badge/Microsoft%20Azure-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://azure.microsoft.com/)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 </div>
 
@@ -25,14 +27,14 @@
 ## 📋 Table of Contents
 
 - [Architecture Overview](#architecture-overview)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
+- [🚀 Quick Start](#-quick-start)
+- [⚙️ Configuration](#️-configuration)
 - [Security Services](#security-services)  
 - [API Reference](#api-reference)
 - [Monitoring](#monitoring)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [Support](#support)
+- [🔧 Troubleshooting](#-troubleshooting)
+- [🤝 Contributing](#-contributing)
+- [📞 Support](#-support)
 
 ## Key Features
 
@@ -321,8 +323,8 @@ graph TB
 
 1. **Clone and Configure**
 ```bash
-git clone https://github.com/your-org/iam-automation.git
-cd iam-automation
+git clone https://github.com/deepak-kumar-biswal/aws-platform-audit.git
+cd aws-platform-audit/iam-automation/iam-creation-automation
 cp config/environments/dev/terraform.tfvars.example terraform.tfvars
 ```
 
@@ -484,8 +486,8 @@ Access the monitoring dashboard at: `https://monitoring.your-company.com`
 
 ```bash
 # Clone repository
-git clone <repository-url>
-cd iam-creation-automation
+git clone https://github.com/deepak-kumar-biswal/aws-platform-audit.git
+cd aws-platform-audit/iam-automation/iam-creation-automation
 
 # Configure cloud credentials
 aws configure
@@ -952,8 +954,8 @@ caching:
 
 1. **Setup Local Environment**
 ```bash
-git clone <repository-url>
-cd iam-creation-automation
+git clone https://github.com/deepak-kumar-biswal/aws-platform-audit.git
+cd aws-platform-audit/iam-automation/iam-creation-automation
 
 # Install dependencies
 pip install -r requirements-dev.txt
@@ -1010,8 +1012,8 @@ safety check
 
 ### Documentation
 - [Deployment Guide](docs/deployment-guide.md)
-- [API Reference](docs/api-reference.md)
-- [Troubleshooting Guide](docs/troubleshooting.md)
+- [API Reference](docs/api.md)
+- [Troubleshooting Guide](docs/troubleshooting-guide.md)
 - [Security Best Practices](docs/security-best-practices.md)
 
 ### Getting Help
